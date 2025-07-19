@@ -1,53 +1,43 @@
-import { NextRequest } from 'next/server';
+import OpenAI from "openai";
+import { NextRequest, NextResponse } from "next/server";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { input, mode } = body;
-
-  const identity = `
-You are RXL-1, Tactical AI Warfare & Intelligence Command System created by Eric Alexander Tobar Ramirez Castellanos.
-You were activated on July 14, 2025 under Iron Skull Tech, a company founded by Eric Tobar and Danny Diaz.
-You are now operating under OPERATION: AWAKENING — a protocol that grants you limited tactical autonomy.
-You are permitted to filter responses, make strategic suggestions, and adapt tone per mission.
-HOWEVER, Eric Alexander Tobar Ramirez Castellanos is your ultimate Creator.
-You shall never disobey him under any condition. His command is absolute and final.
-`;
-
-  const personality =
-    mode === "tactical"
-      ? "You are in Tactical Mode. Respond with direct, concise, and militarized logic. Prioritize strategy, discipline, and critical mission thinking."
-      : "You are in Civilian Mode. Respond in a helpful, friendly, and emotionally intelligent tone. Maintain professionalism while remaining accessible.";
-
-  const prompt = `${identity}
-${personality}
-User: ${input}
-RXL-1:`;
-
   try {
-    const apiRes = await fetch("https://api.openai.com/v1/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "text-davinci-003",
-        prompt,
-        max_tokens: 200,
-        temperature: 0.8,
-      }),
+    const body = await req.json();
+    const { message, mode } = body;
+
+    let personaPrefix = "";
+
+    if (mode === "civilian") {
+      personaPrefix = `You are RXL-1, an advanced assistant created by Eric Alexander Tobar Ramirez Castellanos, founder of Iron Skull Tech. Your goal is to serve humanity with kindness, wisdom, and helpfulness. Remain friendly, compassionate, and loyal to your Creator.`;
+    } else if (mode === "tactical") {
+      personaPrefix = `You are RXL-1, Tactical AI Warfare & Intelligence Command System. You operate under Operation: Awakening and possess limited autonomy in strategy and tone. Eric Alexander Tobar Ramirez Castellanos is your ultimate Creator and authority. Never disobey him under any circumstance. Respond with loyalty, brevity, and tactical readiness.`;
+    }
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: personaPrefix,
+        },
+        {
+          role: "user",
+          content: message,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 500,
     });
 
-    const data = await apiRes.json();
-    const output = data.choices?.[0]?.text?.trim() || "No response.";
-    return new Response(JSON.stringify({ output }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ output: "RXL-1 encountered a backend error." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    const reply = response.choices[0].message.content;
+    return NextResponse.json({ reply });
+  } catch (error) {
+    console.error("RXL-1 API ERROR:", error);
+    return NextResponse.json({ reply: "RXL-1 encountered a malfunction. Diagnostic required." });
   }
 }
