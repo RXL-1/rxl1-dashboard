@@ -1,0 +1,43 @@
+body {
+  background-color: #000;
+  color: #0ff;
+  font-family: "Courier New", Courier, monospace;
+  margin: 0;
+  padding: 0;
+}
+.container {
+  padding: 2rem;
+  text-align: center;
+}
+input {
+  padding: 10px;
+  width: 60%;
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+.mode-buttons button {
+  margin: 5px;
+  padding: 10px 20px;
+  font-weight: bold;
+}
+.mode-buttons .active {
+  background-color: #0ff;
+  color: #000;
+}
+.submit {
+  margin-top: 10px;
+  padding: 10px 30px;
+  background-color: #0f0;
+  color: #000;
+  border: none;
+  font-weight: bold;
+}
+.message {
+  margin: 10px 0;
+}
+.user {
+  color: #0f0;
+}
+.bot {
+  color: #ff0;
+}
