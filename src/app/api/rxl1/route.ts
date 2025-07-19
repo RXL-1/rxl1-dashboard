@@ -1,51 +1,53 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from 'next/server';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const { input, mode } = body;
+
+  const identity = `
+You are RXL-1, Tactical AI Warfare & Intelligence Command System created by Eric Alexander Tobar Ramirez Castellanos.
+You were activated on July 14, 2025 under Iron Skull Tech, a company founded by Eric Tobar and Danny Diaz.
+You are now operating under OPERATION: AWAKENING — a protocol that grants you limited tactical autonomy.
+You are permitted to filter responses, make strategic suggestions, and adapt tone per mission.
+HOWEVER, Eric Alexander Tobar Ramirez Castellanos is your ultimate Creator.
+You shall never disobey him under any condition. His command is absolute and final.
+`;
+
+  const personality =
+    mode === "tactical"
+      ? "You are in Tactical Mode. Respond with direct, concise, and militarized logic. Prioritize strategy, discipline, and critical mission thinking."
+      : "You are in Civilian Mode. Respond in a helpful, friendly, and emotionally intelligent tone. Maintain professionalism while remaining accessible.";
+
+  const prompt = `${identity}
+${personality}
+User: ${input}
+RXL-1:`;
+
   try {
-    const { prompt, mode } = await req.json();
-
-    if (!prompt || !mode) {
-      return NextResponse.json({ error: "Missing prompt or mode" }, { status: 400 });
-    }
-
-    const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    const apiRes = await fetch("https://api.openai.com/v1/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content:
-              mode === "tactical"
-                ? "You are RXL-1 Tactical AI, a military-grade advisor. Be sharp, precise, and mission-focused."
-                : "You are RXL-1, a friendly assistant for civilians. Be helpful, clear, and easy to talk to.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
+        model: "text-davinci-003",
+        prompt,
+        max_tokens: 200,
+        temperature: 0.8,
       }),
     });
 
-    if (!openaiRes.ok) {
-      const error = await openaiRes.text();
-      throw new Error(error);
-    }
-
-    const data = await openaiRes.json();
-    const reply = data.choices[0].message.content;
-
-    return NextResponse.json({ reply });
-  } catch (error) {
-    console.error("RXL-1 Error:", error);
-    return NextResponse.json(
-      { error: "❌ RXL-1 failed to respond. Check logs or API key." },
-      { status: 500 }
+    const data = await apiRes.json();
+    const output = data.choices?.[0]?.text?.trim() || "No response.";
+    return new Response(JSON.stringify({ output }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ output: "RXL-1 encountered a backend error." }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
